@@ -10,3 +10,8 @@ Imagen Celular
 App.py - Tema: Mascotas (Pets)
 Fecha: 2025-11-24 
 https://github.com/LisbethCifuentes/Curso_Programacion_Python/tree/master/0%20Tareas%20de%20clase/03.%20App_Pet
+
+#4. Homework-code-3_and_finish
+App.py - Tema: Mascotas (Pets)
+Fecha: 2025-12-08
+https://github.com/LisbethCifuentes/Curso_Programacion_Python/tree/master/0%20Tareas%20de%20clase/04.%20App_Pet
