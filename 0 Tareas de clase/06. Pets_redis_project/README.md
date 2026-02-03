@@ -1,11 +1,13 @@
 # 🐾 Pet App - Django + MongoDB + Redis + Workers
 
-Sistema distribuido para gestionar mascotas con API REST, colas de Redis y procesamiento asíncrono con múltiples workers.
+Sistema distribuido para gestionar mascotas con API REST, colas de Redis, procesamiento asíncrono con múltiples workers e **interfaz web interactiva con modal de información enriquecida**.
 
 ## 🎯 Características Principales
 
 ✅ **API CRUD** completa de mascotas con Django REST Framework  
 ✅ **Autenticación JWT** para endpoints protegidos  
+✅ **Interfaz Web Interactiva** con login y creación de mascotas desde el navegador  
+✅ **Modal de Información Enriquecida** al hacer click en las tarjetas  
 ✅ **MongoDB** como base de datos NoSQL  
 ✅ **Redis** como sistema de colas (message broker)  
 ✅ **3 Consumidores** (workers) para procesamiento distribuido  
@@ -19,8 +21,12 @@ Sistema distribuido para gestionar mascotas con API REST, colas de Redis y proce
 ```
 ┌─────────────┐
 │   Cliente   │
+│  (Browser)  │
 └──────┬──────┘
-       │ POST /api/pets/
+       │ 
+       ├─► GET /              (Vista HTML con tarjetas + modal)
+       ├─► POST /api/token/   (Login JWT)
+       └─► POST /api/pets/    (Crear mascota)
        ▼
 ┌─────────────────┐
 │  Django API     │ ──► Guarda en MongoDB
@@ -48,11 +54,71 @@ Sistema distribuido para gestionar mascotas con API REST, colas de Redis y proce
 
 ---
 
+## 🌐 Interfaz Web Interactiva
+
+### Vista Principal (`http://localhost:8000/`)
+
+La aplicación cuenta con una **interfaz web completa** que incluye:
+
+#### 🔐 Sistema de Login
+- Formulario de autenticación JWT
+- Manejo de sesión en el navegador
+- Usuario predeterminado: `admin` / `admin123`
+
+#### ➕ Creación de Mascotas desde el Navegador
+Una vez logueado, se muestra un formulario para crear mascotas con:
+- Nombre
+- Especie (Dog, Cat, Bird, Rabbit, Fish)
+- Edad
+- Dueño
+- Estado de vacunación
+
+#### 🃏 Tarjetas de Mascotas
+Cada mascota se muestra en una tarjeta elegante con:
+- Nombre destacado
+- Información básica (especie, edad, dueño)
+- Badge de estado de vacunación (verde/rojo)
+- **Efecto hover** que indica "Click para más info"
+
+#### 🎭 Modal de Información Enriquecida ⭐ **NUEVO**
+Al hacer click en cualquier tarjeta, se abre un modal elegante con:
+
+**📋 Información Básica**
+- ID de la mascota
+- Nombre, especie, edad, dueño
+- Estado de vacunación
+
+**🎓 Datos Curiosos de la Especie**
+- Esperanza de vida promedio
+- Grupo taxonómico (Mamífero, Aves, Peces)
+- Tipo de dieta (Omnívoro, Carnívoro, Herbívoro)
+- 💡 **Fun Fact**: Dato curioso sobre la especie
+
+**🏥 Recomendaciones de Salud Personalizadas**
+- ⚠️ **Alertas URGENTES** si la mascota no está vacunada (fondo rojo)
+- Tips específicos según edad (cachorro/adulto/senior)
+- Consejos específicos por especie
+
+**📊 Estadísticas del Procesamiento**
+- Total de recomendaciones generadas
+- Estado actual de vacunación
+- Categoría de edad
+
+**Características del Modal:**
+- 🎨 Diseño elegante con gradiente morado
+- 📱 Responsive (se adapta a móviles)
+- ⌨️ Atajos de teclado (ESC para cerrar)
+- 🖱️ Click fuera del modal para cerrar
+- ⚡ Carga instantánea de información
+
+---
+
 ## 🛠️ Tecnologías
 
 | Componente | Tecnología | Versión |
 |-----------|------------|---------|
 | **Backend** | Django + DRF | 4.2.7 |
+| **Frontend** | HTML5 + CSS3 + JavaScript | Vanilla JS |
 | **Base de Datos** | MongoDB | 7.0 |
 | **Message Queue** | Redis | 7 Alpine |
 | **ORM** | MongoEngine | 0.27.0 |
@@ -115,41 +181,28 @@ Credenciales sugeridas:
 
 ---
 
-## 🌐 Endpoints Disponibles
+## 🎮 Guía de Uso
 
-### 📄 Vista Pública (Sin autenticación)
+### Opción 1: Usar la Interfaz Web (Recomendado)
 
-| URL | Método | Descripción |
-|-----|--------|-------------|
-| `http://localhost:8000/` | GET | Vista HTML de todas las mascotas |
+1. **Abre el navegador** en `http://localhost:8000/`
 
----
+2. **Inicia sesión**:
+   - Usuario: `admin`
+   - Contraseña: `admin123`
 
-### 🔑 Autenticación JWT
+3. **Crea mascotas** usando el formulario que aparece después del login
 
-| URL | Método | Body | Descripción |
-|-----|--------|------|-------------|
-| `/api/token/` | POST | `{"username": "admin", "password": "admin123"}` | Obtener tokens |
-| `/api/token/refresh/` | POST | `{"refresh": "REFRESH_TOKEN"}` | Renovar access token |
+4. **Explora la información enriquecida** haciendo click en cualquier tarjeta
 
----
+5. **Observa el procesamiento** en tiempo real:
+   ```bash
+   docker logs -f pets-consumer-1
+   ```
 
-### 🐾 API de Mascotas (Requiere JWT)
+### Opción 2: Usar la API Directamente
 
-| URL | Método | Descripción |
-|-----|--------|-------------|
-| `/api/pets/` | GET | Listar mascotas |
-| `/api/pets/` | POST | ⭐ Crear mascota + enviar a cola Redis |
-| `/api/pets/<id>/` | GET | Obtener mascota |
-| `/api/pets/<id>/` | PUT | Actualizar mascota |
-| `/api/pets/<id>/` | DELETE | Eliminar mascota |
-| `/api/redis/stats/` | GET | Ver estadísticas de Redis |
-
----
-
-## 📝 Flujo Completo de Uso
-
-### Paso 1: Obtener Token JWT
+#### Paso 1: Obtener Token JWT
 
 ```bash
 curl -X POST http://localhost:8000/api/token/ \
@@ -169,7 +222,7 @@ Guarda el `access` token.
 
 ---
 
-### Paso 2: Crear una Mascota (¡Aquí pasa la magia!)
+#### Paso 2: Crear una Mascota
 
 ```bash
 curl -X POST http://localhost:8000/api/pets/ \
@@ -206,27 +259,48 @@ curl -X POST http://localhost:8000/api/pets/ \
 2. Se envía una tarea a Redis
 3. Uno de los 3 workers la procesa
 4. Se genera un archivo JSON enriquecido
+5. **La información aparece en el modal de la interfaz web**
 
 ---
 
-### Paso 3: Ver Estadísticas de Redis
+#### Paso 3: Ver Estadísticas de Redis
 
 ```bash
 curl http://localhost:8000/api/redis/stats/ \
   -H "Authorization: Bearer TU_ACCESS_TOKEN"
 ```
 
-**Respuesta:**
-```json
-{
-  "queue_name": "pets:tasks",
-  "pending_tasks": 0,
-  "redis_host": "redis",
-  "redis_port": 6379,
-  "connected_clients": 4,
-  "total_commands_processed": 3365
-}
-```
+---
+
+## 🌐 Endpoints Disponibles
+
+### 📄 Vista Pública (Sin autenticación)
+
+| URL | Método | Descripción |
+|-----|--------|-------------|
+| `http://localhost:8000/` | GET | Vista HTML interactiva con tarjetas y modal |
+
+---
+
+### 🔑 Autenticación JWT
+
+| URL | Método | Body | Descripción |
+|-----|--------|------|-------------|
+| `/api/token/` | POST | `{"username": "admin", "password": "admin123"}` | Obtener tokens |
+| `/api/token/refresh/` | POST | `{"refresh": "REFRESH_TOKEN"}` | Renovar access token |
+
+---
+
+### 🐾 API de Mascotas (Requiere JWT)
+
+| URL | Método | Descripción |
+|-----|--------|-------------|
+| `/api/pets/` | GET | Listar mascotas |
+| `/api/pets/` | POST | ⭐ Crear mascota + enviar a cola Redis |
+| `/api/pets/<id>/` | GET | Obtener mascota |
+| `/api/pets/<id>/` | PUT | Actualizar mascota |
+| `/api/pets/<id>/` | DELETE | Eliminar mascota |
+| `/api/redis/stats/` | GET | Ver estadísticas de Redis |
 
 ---
 
@@ -287,6 +361,8 @@ Ubicación: `/processed_data/6981fcf3dd7c1b67498baf89_Mishi_20260203_134940.json
   }
 }
 ```
+
+**Esta misma información se muestra en el modal de la interfaz web.**
 
 ---
 
@@ -366,9 +442,15 @@ docker exec -it pets-consumer-1 ls -lh /app/processed_data
 docker exec -it pets-consumer-1 cat /app/processed_data/NOMBRE_ARCHIVO.json
 ```
 
+### 6. ✅ Probar la interfaz web
+1. Abre `http://localhost:8000/`
+2. Inicia sesión
+3. Crea una mascota
+4. Haz click en su tarjeta para ver el modal con información enriquecida
+
 ---
 
-## 🎨 Características Avanzadas
+## 🎨 Características Avanzadas de la Interfaz
 
 ### Filtros en la API
 
@@ -460,6 +542,12 @@ taskkill /PID <PID> /F
 lsof -ti:8000 | xargs kill -9
 ```
 
+### Problema: Modal no se muestra
+
+1. **Verifica que usaste el archivo correcto**: `pets_list_FINAL.html`
+2. **Limpia la caché del navegador**: Ctrl + Shift + R
+3. **Verifica la consola del navegador**: F12 → Console (busca errores JavaScript)
+
 ---
 
 ## 📁 Estructura del Proyecto
@@ -487,7 +575,7 @@ pets-redis-project/
 │
 └── templates/                  # Templates HTML
     └── pets/
-        └── pets_list.html
+        └── pets_list.html      # ⭐ Vista interactiva con modal
 ```
 
 ---
@@ -517,23 +605,30 @@ redis_client.blpop('pets:tasks', timeout=1)
 - Comunicación vía Redis
 - Desacoplamiento total
 
+### 5. **Interfaz de Usuario Interactiva**
+- Login sin recargar página (AJAX)
+- Modal dinámico con JavaScript
+- Experiencia de usuario fluida
+
 ---
 
 ## 📈 Mejoras Futuras
 
 - [ ] Agregar Redis Pub/Sub para notificaciones en tiempo real
+- [ ] WebSocket para actualizar automáticamente la lista cuando se crea una mascota
 - [ ] Implementar reintentos con exponential backoff
 - [ ] Agregar dead-letter queue para tareas fallidas
 - [ ] Métricas con Prometheus/Grafana
 - [ ] Sistema de prioridades en las tareas
-- [ ] WebSocket para actualizaciones en vivo
 - [ ] Panel de administración para monitorear workers
+- [ ] Búsqueda y filtros en la interfaz web
+- [ ] Paginación para grandes cantidades de mascotas
 
 ---
 
 ## 👨‍💻 Autor
 
-Proyecto desarrollado como ejemplo de arquitectura distribuida con colas de mensajes.
+Proyecto desarrollado como ejemplo de arquitectura distribuida con colas de mensajes e interfaz web interactiva.
 
 ---
 
@@ -549,6 +644,7 @@ MIT License - Uso libre
 - [Django REST Framework](https://www.django-rest-framework.org/)
 - [Docker Compose](https://docs.docker.com/compose/)
 - [MongoEngine](http://mongoengine.org/)
+- [JWT Authentication](https://jwt.io/)
 
 ---
 
@@ -575,7 +671,31 @@ docker-compose down
 
 # Limpiar todo
 docker-compose down -v
+
+# Abrir interfaz web
+# http://localhost:8000/
 ```
 
 ---
 
+## 🎯 Características Destacadas
+
+✨ **Nueva Interfaz Web con Modal Interactivo**
+- Click en tarjetas para ver información enriquecida
+- Modal elegante con datos curiosos y recomendaciones
+- Sistema de login integrado
+- Creación de mascotas desde el navegador
+
+🔄 **Sistema Distribuido Completo**
+- 3 workers procesando en paralelo
+- Colas Redis FIFO
+- Procesamiento asíncrono
+
+🤖 **Procesamiento Inteligente**
+- Enriquecimiento con Wikipedia
+- Alertas personalizadas
+- Recomendaciones por especie y edad
+
+---
+
+**🎉 ¡Listo! Ahora tienes un sistema distribuido con colas de Redis e interfaz web interactiva completamente funcional.**
