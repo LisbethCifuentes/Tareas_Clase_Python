@@ -26,5 +26,7 @@ App.py - Tema: Mascotas (Pets)
 Fecha: 2026-02-02
 https://github.com/LisbethCifuentes/Tareas_Clase_Python/tree/main/0%20Tareas%20de%20clase/06.%20Pets_redis_project
 
-#7 Homework Omitir? 
+#7 Homework *Omitir* 
 Proyecto Práctico I
+Nota: Misma Homework #6, intenté realizar algunas cosas adicionales
+https://github.com/LisbethCifuentes/Tareas_Clase_Python/tree/main/0%20Tareas%20de%20clase/07.%20Pets_proyecto_final

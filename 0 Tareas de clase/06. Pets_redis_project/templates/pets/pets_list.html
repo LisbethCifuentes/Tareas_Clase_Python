@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pets List - No Auth Required</title>
+    <title>Pets List - Sistema Completo</title>
     <style>
         * {
             margin: 0;
@@ -37,6 +37,103 @@
             margin-bottom: 30px;
             font-size: 1.1em;
         }
+
+        .auth-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .auth-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input, 
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .logged-in-info {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #155724;
+        }
+
+        .hidden {
+            display: none;
+        }
         
         .pets-grid {
             display: grid;
@@ -51,11 +148,28 @@
             padding: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            position: relative;
         }
         
         .pet-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .pet-card::after {
+            content: '👁️ Click para más info';
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.8em;
+            color: #667eea;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .pet-card:hover::after {
+            opacity: 1;
         }
         
         .pet-name {
@@ -103,52 +217,192 @@
             padding: 40px;
             border-radius: 15px;
         }
-        
-        .api-info {
-            background: rgba(255,255,255,0.95);
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 2em;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .close {
+            color: white;
+            float: right;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 30px;
+        }
+
+        .close:hover {
+            color: #f0f0f0;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
             padding: 20px;
+            background: #f8f9fa;
             border-radius: 10px;
-            margin-bottom: 30px;
-            border-left: 5px solid #667eea;
+            border-left: 4px solid #667eea;
         }
-        
-        .api-info h2 {
+
+        .info-section h3 {
             color: #667eea;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
         }
-        
-        .api-info p {
-            color: #555;
+
+        .info-item {
+            margin: 10px 0;
             line-height: 1.6;
         }
-        
-        .api-info code {
-            background: #f3f4f6;
-            padding: 2px 8px;
-            border-radius: 4px;
-            color: #ef4444;
-            font-family: 'Courier New', monospace;
+
+        .fun-fact {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 10px 0;
+            font-style: italic;
+        }
+
+        .health-tip {
+            background: #d1ecf1;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .urgent-tip {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🐾 Pets List</h1>
-        <p class="subtitle">Vista pública - No requiere autenticación</p>
+        <p class="subtitle">Sistema Completo de Gestión de Mascotas</p>
         
-        <div class="api-info">
-            <h2>📌 Información importante</h2>
-            <p>
-                Esta es la vista renderizada <strong>sin autenticación</strong>. 
-                Los endpoints de la API en <code>/api/pets/</code> requieren JWT token y 
-                fallarán sin autenticación. Para obtener un token, usa <code>POST /api/token/</code>
-            </p>
+        <div class="auth-section">
+            <div id="message" class="message"></div>
+            
+            <div id="logged-in-info" class="logged-in-info hidden">
+                <strong>✓ Sesión activa</strong> - Usuario: <span id="username-display"></span>
+                <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+            </div>
+
+            <div id="login-form">
+                <h2>🔐 Iniciar Sesión</h2>
+                <div class="form-group">
+                    <label for="username">Usuario:</label>
+                    <input type="text" id="username" placeholder="admin">
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" placeholder="admin123">
+                </div>
+                <button class="btn" onclick="login()">Iniciar Sesión</button>
+            </div>
+
+            <div id="create-pet-form" class="hidden">
+                <h2>➕ Agregar Nueva Mascota</h2>
+                <div class="form-group">
+                    <label for="pet-name">Nombre:</label>
+                    <input type="text" id="pet-name" placeholder="Ej: Max">
+                </div>
+                <div class="form-group">
+                    <label for="pet-species">Especie:</label>
+                    <select id="pet-species">
+                        <option value="Dog">Perro (Dog)</option>
+                        <option value="Cat">Gato (Cat)</option>
+                        <option value="Bird">Pájaro (Bird)</option>
+                        <option value="Rabbit">Conejo (Rabbit)</option>
+                        <option value="Fish">Pez (Fish)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="pet-age">Edad (años):</label>
+                    <input type="number" id="pet-age" min="0" max="30" placeholder="Ej: 3">
+                </div>
+                <div class="form-group">
+                    <label for="pet-owner">Dueño:</label>
+                    <input type="text" id="pet-owner" placeholder="Ej: Juan Pérez">
+                </div>
+                <div class="form-group">
+                    <label for="pet-vaccinated">Estado de Vacunación:</label>
+                    <select id="pet-vaccinated">
+                        <option value="true">Vacunado</option>
+                        <option value="false">Sin Vacunar</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="createPet()">Crear Mascota</button>
+            </div>
         </div>
         
         {% if pets %}
         <div class="pets-grid">
             {% for pet in pets %}
-            <div class="pet-card">
+            <div class="pet-card" onclick="showPetDetails('{{ pet.id }}', '{{ pet.name }}', '{{ pet.species }}', {{ pet.age }}, '{{ pet.owner }}', {{ pet.vaccinated|lower }})">
                 <div class="pet-name">{{ pet.name }}</div>
                 <div class="pet-info"><strong>Especie:</strong> {{ pet.species }}</div>
                 <div class="pet-info"><strong>Edad:</strong> {{ pet.age }} años</div>
@@ -167,10 +421,221 @@
         <div class="empty-state">
             <p>😿 No hay mascotas registradas aún</p>
             <p style="font-size: 0.8em; margin-top: 10px;">
-                Usa la API para agregar mascotas (requiere autenticación JWT)
+                Inicia sesión y agrega tu primera mascota
             </p>
         </div>
         {% endif %}
     </div>
+
+    <div id="petModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2 id="modal-pet-name">Cargando...</h2>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <div class="loading">🔄 Buscando información enriquecida...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            setTimeout(() => { messageDiv.style.display = 'none'; }, 5000);
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showMessage('Por favor ingresa usuario y contraseña', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/api/token/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access;
+                    
+                    document.getElementById('login-form').classList.add('hidden');
+                    document.getElementById('create-pet-form').classList.remove('hidden');
+                    document.getElementById('logged-in-info').classList.remove('hidden');
+                    document.getElementById('username-display').textContent = username;
+                    
+                    showMessage('¡Sesión iniciada correctamente!', 'success');
+                } else {
+                    showMessage('Usuario o contraseña incorrectos', 'error');
+                }
+            } catch (error) {
+                showMessage('Error al conectar con el servidor', 'error');
+            }
+        }
+
+        function logout() {
+            authToken = null;
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('create-pet-form').classList.add('hidden');
+            document.getElementById('logged-in-info').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            showMessage('Sesión cerrada', 'success');
+        }
+
+        async function createPet() {
+            if (!authToken) {
+                showMessage('Debes iniciar sesión primero', 'error');
+                return;
+            }
+
+            const name = document.getElementById('pet-name').value;
+            const species = document.getElementById('pet-species').value;
+            const age = parseInt(document.getElementById('pet-age').value);
+            const owner = document.getElementById('pet-owner').value;
+            const vaccinated = document.getElementById('pet-vaccinated').value === 'true';
+
+            if (!name || !age || !owner) {
+                showMessage('Por favor completa todos los campos', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/api/pets/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ name, species, age, owner, vaccinated })
+                });
+
+                if (response.ok) {
+                    showMessage(`¡Mascota "${name}" creada exitosamente! La página se recargará en 2 segundos...`, 'success');
+                    
+                    document.getElementById('pet-name').value = '';
+                    document.getElementById('pet-age').value = '';
+                    document.getElementById('pet-owner').value = '';
+                    
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    const error = await response.json();
+                    showMessage('Error al crear mascota: ' + JSON.stringify(error), 'error');
+                }
+            } catch (error) {
+                showMessage('Error al conectar con el servidor', 'error');
+            }
+        }
+
+        function showPetDetails(petId, name, species, age, owner, vaccinated) {
+            const modal = document.getElementById('petModal');
+            modal.style.display = 'block';
+            
+            document.getElementById('modal-pet-name').textContent = `🐾 ${name}`;
+            
+            generateEnrichedInfo(petId, name, species, age, owner, vaccinated);
+        }
+
+        function generateEnrichedInfo(petId, name, species, age, owner, vaccinated) {
+            const speciesFacts = {
+                'Dog': { lifespan: '10-13 años', group: 'Mamífero', diet: 'Omnívoro', fun_fact: '¡Los perros han sido compañeros de los humanos por más de 15,000 años!' },
+                'Cat': { lifespan: '12-18 años', group: 'Mamífero', diet: 'Carnívoro', fun_fact: '¡Los gatos pasan el 70% de sus vidas durmiendo!' },
+                'Bird': { lifespan: '5-30 años', group: 'Aves', diet: 'Varía', fun_fact: '¡Algunos pájaros pueden ver luz ultravioleta!' },
+                'Rabbit': { lifespan: '8-12 años', group: 'Mamífero', diet: 'Herbívoro', fun_fact: '¡Los conejos pueden ver casi 360 grados!' },
+                'Fish': { lifespan: '1-20 años', group: 'Peces', diet: 'Varía', fun_fact: '¡Los peces existían antes que los dinosaurios!' }
+            };
+
+            let healthTips = [];
+            
+            if (!vaccinated) {
+                healthTips.push(`<div class="health-tip urgent-tip">⚠️ <strong>URGENTE:</strong> ¡Esta ${species} necesita vacunación! Consulte a un veterinario.</div>`);
+            }
+            
+            if (age < 1) {
+                healthTips.push(`<div class="health-tip">🍼 ${species} joven necesita chequeos frecuentes.</div>`);
+            } else if (age > 10) {
+                healthTips.push(`<div class="health-tip">👴 ${species} senior. Considere visitas más frecuentes.</div>`);
+            } else {
+                healthTips.push(`<div class="health-tip">✅ ${species} adulta en edad óptima.</div>`);
+            }
+
+            const speciesTips = {
+                'Dog': '🐕 Los perros necesitan ejercicio diario e interacción social.',
+                'Cat': '🐱 Los gatos necesitan rascadores y aseo regular.',
+                'Bird': '🐦 Los pájaros necesitan jaulas grandes y estimulación mental.',
+                'Fish': '🐠 Los peces necesitan agua limpia y control de temperatura.',
+                'Rabbit': '🐰 Los conejos necesitan espacio para saltar.'
+            };
+
+            if (speciesTips[species]) {
+                healthTips.push(`<div class="health-tip">${speciesTips[species]}</div>`);
+            }
+
+            const facts = speciesFacts[species] || speciesFacts['Dog'];
+
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <div class="info-section">
+                    <h3>📋 Información Básica</h3>
+                    <div class="info-item"><strong>ID:</strong> ${petId}</div>
+                    <div class="info-item"><strong>Nombre:</strong> ${name}</div>
+                    <div class="info-item"><strong>Especie:</strong> ${species}</div>
+                    <div class="info-item"><strong>Edad:</strong> ${age} años</div>
+                    <div class="info-item"><strong>Dueño:</strong> ${owner}</div>
+                    <div class="info-item"><strong>Vacunación:</strong> ${vaccinated ? '✅ Vacunado' : '❌ Sin vacunar'}</div>
+                </div>
+
+                <div class="info-section">
+                    <h3>🎓 Datos Curiosos de la Especie</h3>
+                    <div class="info-item"><strong>Esperanza de vida:</strong> ${facts.lifespan}</div>
+                    <div class="info-item"><strong>Grupo:</strong> ${facts.group}</div>
+                    <div class="info-item"><strong>Dieta:</strong> ${facts.diet}</div>
+                    <div class="fun-fact">💡 ${facts.fun_fact}</div>
+                </div>
+
+                <div class="info-section">
+                    <h3>🏥 Recomendaciones de Salud</h3>
+                    ${healthTips.join('')}
+                </div>
+
+                <div class="info-section">
+                    <h3>📊 Estadísticas</h3>
+                    <div class="info-item"><strong>Total recomendaciones:</strong> ${healthTips.length}</div>
+                    <div class="info-item"><strong>Estado vacunación:</strong> ${vaccinated ? 'Al día' : 'Necesita vacunación'}</div>
+                    <div class="info-item"><strong>Categoría edad:</strong> ${age < 1 ? 'Cachorro/Cría' : (age > 10 ? 'Senior' : 'Adulto')}</div>
+                </div>
+            `;
+        }
+
+        function closeModal() {
+            document.getElementById('petModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('petModal')) {
+                closeModal();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') login();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeModal();
+            });
+        });
+    </script>
 </body>
 </html>
