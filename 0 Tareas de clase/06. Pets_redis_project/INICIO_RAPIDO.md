@@ -1,6 +1,6 @@
 # 🚀 INICIO RÁPIDO - PETS + REDIS PROJECT
 
-## ⚡ Instrucciones en 5 Pasos
+## ⚡ Puesta en Marcha en 5 Pasos
 
 ### 1️⃣ LEVANTAR LOS SERVICIOS
 
@@ -18,7 +18,7 @@ Esto iniciará automáticamente:
 ```
 pets-redis        | Ready to accept connections
 pets-mongodb      | Waiting for connections
-pets-django-api   | Starting development server at http://0.0.0.0:8000/
+pets-django-api   | Watching for file changes with StatReloader
 pets-consumer-1   | [Consumer-1] 👂 Waiting for tasks...
 pets-consumer-2   | [Consumer-2] 👂 Waiting for tasks...
 pets-consumer-3   | [Consumer-3] 👂 Waiting for tasks...
@@ -30,6 +30,14 @@ pets-consumer-3   | [Consumer-3] 👂 Waiting for tasks...
 
 ```bash
 docker exec -it pets-django-api python manage.py migrate
+```
+
+**Resultado esperado:**
+```
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  No migrations to apply.
 ```
 
 ---
@@ -46,24 +54,45 @@ Usa estas credenciales:
 - **Password**: `admin123`
 - **Confirmar password**: `admin123`
 
+**Nota:** Si te advierte que la contraseña es común, escribe `y` para confirmar.
+
 ---
 
 ### 4️⃣ OBTENER TOKEN JWT
 
+#### Opción A - PowerShell (Windows):
+```powershell
+$response = Invoke-RestMethod -Uri "http://localhost:8000/api/token/" -Method Post -ContentType "application/json" -Body '{"username": "admin", "password": "admin123"}'
+$token = $response.access
+Write-Host "Token obtenido: $token"
+```
+
+#### Opción B - Bash (Linux/Mac):
 ```bash
 curl -X POST http://localhost:8000/api/token/ \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "admin123"}'
 ```
 
-**Copia el `access` token de la respuesta.**
+**Guarda el `access` token** que recibes en la respuesta.
 
 ---
 
 ### 5️⃣ CREAR UNA MASCOTA (y ver la magia)
 
-Reemplaza `TU_TOKEN_AQUI` con el token que copiaste:
+#### PowerShell:
+```powershell
+$headers = @{
+    "Authorization" = "Bearer $token"
+    "Content-Type" = "application/json"
+}
 
+$body = '{"name": "Max", "species": "Dog", "age": 5, "owner": "Juan Perez", "vaccinated": true}'
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/pets/" -Method Post -Headers $headers -Body $body
+```
+
+#### Bash:
 ```bash
 curl -X POST http://localhost:8000/api/pets/ \
   -H "Content-Type: application/json" \
@@ -72,7 +101,7 @@ curl -X POST http://localhost:8000/api/pets/ \
     "name": "Max",
     "species": "Dog",
     "age": 5,
-    "owner": "Juan Pérez",
+    "owner": "Juan Perez",
     "vaccinated": true
   }'
 ```
@@ -88,6 +117,7 @@ curl -X POST http://localhost:8000/api/pets/ \
    - Información de Wikipedia sobre la especie
    - Datos curiosos (esperanza de vida, dieta, etc.)
    - Recomendaciones de salud personalizadas
+   - Alertas (si la mascota no está vacunada)
 
 ---
 
@@ -98,12 +128,16 @@ curl -X POST http://localhost:8000/api/pets/ \
 docker logs -f pets-consumer-1
 ```
 
-Verás algo como:
+**Deberías ver:**
 ```
-[2025-01-24 14:30:22] [Consumer-1] [INFO] 📨 Received new task from queue
-[2025-01-24 14:30:22] [Consumer-1] [INFO] Processing pet: Max (Dog) - ID: 67698abc
-[2025-01-24 14:30:23] [Consumer-1] [INFO] Fetching Wikipedia data for Dog...
-[2025-01-24 14:30:24] [Consumer-1] [SUCCESS] ✅ Enriched data saved to: 67698abc_Max_20250124_143024.json
+[2026-02-03 13:49:41] [Consumer-1] [INFO] 📨 Received new task from queue
+[2026-02-03 13:49:41] [Consumer-1] [INFO] Processing pet: Max (Dog) - ID: 67698abc
+[2026-02-03 13:49:41] [Consumer-1] [INFO] Fetching Wikipedia data for Dog...
+[2026-02-03 13:49:42] [Consumer-1] [INFO] Generating fun facts...
+[2026-02-03 13:49:42] [Consumer-1] [INFO] Generating health tips...
+[2026-02-03 13:49:43] [Consumer-1] [SUCCESS] ✅ Enriched data saved to: 67698abc_Max_20260203_134943.json
+[2026-02-03 13:49:43] [Consumer-1] [SUCCESS] ⏱️  Task processed in 2.15s
+[2026-02-03 13:49:43] [Consumer-1] [INFO] 📊 Generated 2 health tips
 ```
 
 ### Ver archivo JSON generado:
@@ -113,54 +147,119 @@ docker exec -it pets-consumer-1 cat /app/processed_data/NOMBRE_ARCHIVO.json
 ```
 
 ### Ver estadísticas de Redis:
+
+#### PowerShell:
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8000/api/redis/stats/" -Method Get -Headers @{"Authorization" = "Bearer $token"}
+```
+
+#### Bash:
 ```bash
 curl http://localhost:8000/api/redis/stats/ \
   -H "Authorization: Bearer TU_TOKEN_AQUI"
 ```
 
----
-
-## 📝 Ejemplos Windows (PowerShell)
-
-### Crear usuario:
-```powershell
-docker exec -it pets-django-api python manage.py createsuperuser
-```
-
-### Obtener token:
-```powershell
-curl.exe -X POST http://localhost:8000/api/token/ -H "Content-Type: application/json" -d '{\"username\": \"admin\", \"password\": \"admin123\"}'
-```
-
-### Crear mascota:
-```powershell
-curl.exe -X POST http://localhost:8000/api/pets/ -H "Content-Type: application/json" -H "Authorization: Bearer TU_TOKEN" -d '{\"name\": \"Luna\", \"species\": \"Cat\", \"age\": 3, \"owner\": \"María\", \"vaccinated\": true}'
+**Respuesta esperada:**
+```json
+{
+  "queue_name": "pets:tasks",
+  "pending_tasks": 0,
+  "redis_host": "redis",
+  "redis_port": 6379,
+  "connected_clients": 4,
+  "total_commands_processed": 3365
+}
 ```
 
 ---
 
-## 🔥 Script de Prueba Automático
+## 🐱 Crear Más Mascotas (Ejemplos)
 
-Ejecuta el script de prueba:
+### Gato sin vacunar (verás alertas):
+```powershell
+$body = '{"name": "Mishi", "species": "Cat", "age": 2, "owner": "Ana Garcia", "vaccinated": false}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/pets/" -Method Post -Headers $headers -Body $body
+```
 
+### Pájaro vacunado:
+```powershell
+$body = '{"name": "Piolin", "species": "Bird", "age": 1, "owner": "Luis Rodriguez", "vaccinated": true}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/pets/" -Method Post -Headers $headers -Body $body
+```
+
+### Conejo:
+```powershell
+$body = '{"name": "Tambor", "species": "Rabbit", "age": 3, "owner": "Sofia Martinez", "vaccinated": true}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/pets/" -Method Post -Headers $headers -Body $body
+```
+
+### Pez:
+```powershell
+$body = '{"name": "Nemo", "species": "Fish", "age": 1, "owner": "Carlos Lopez", "vaccinated": false}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/pets/" -Method Post -Headers $headers -Body $body
+```
+
+**Cada especie genera datos curiosos diferentes y recomendaciones personalizadas.**
+
+---
+
+## 🔥 Ver el Procesamiento en Tiempo Real
+
+Abre **DOS terminales**:
+
+**Terminal 1 - Ver logs:**
 ```bash
-./test_quick.sh
+docker logs -f pets-consumer-1
 ```
 
-Esto verificará:
-- ✅ Redis funcionando
-- ✅ Workers activos
-- ✅ Tareas pendientes
-- ✅ Archivos procesados
-- ✅ API respondiendo
+**Terminal 2 - Crear mascotas:**
+```powershell
+# Crea varias mascotas y observa Terminal 1
+$body = '{"name": "Rocky", "species": "Dog", "age": 7, "owner": "Pedro", "vaccinated": true}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/pets/" -Method Post -Headers $headers -Body $body
+```
+
+Verás el procesamiento **en tiempo real** en Terminal 1.
 
 ---
 
-## 📚 Más Información
+## 📊 Verificar que TODO Funciona
 
-- **README.md** - Documentación completa
-- **ARQUITECTURA.md** - Diagramas del sistema
-- **COMANDOS.txt** - Todos los comandos disponibles
+### 1. Ver contenedores activos:
+```bash
+docker ps
+```
+**Debes ver 6 contenedores:** django-api, redis, mongodb, consumer-1, consumer-2, consumer-3
+
+### 2. Verificar Redis:
+```bash
+docker exec -it pets-redis redis-cli ping
+```
+**Debe responder:** `PONG`
+
+### 3. Ver tareas pendientes:
+```bash
+docker exec -it pets-redis redis-cli LLEN pets:tasks
+```
+**Debe responder:** `(integer) 0` (si no hay tareas pendientes)
+
+### 4. Ver archivos generados:
+```bash
+docker exec -it pets-consumer-1 ls -lh /app/processed_data
+```
+
+### 5. Listar todas las mascotas creadas:
+
+#### PowerShell:
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8000/api/pets/" -Method Get -Headers @{"Authorization" = "Bearer $token"}
+```
+
+#### Bash:
+```bash
+curl http://localhost:8000/api/pets/ \
+  -H "Authorization: Bearer TU_TOKEN"
+```
 
 ---
 
@@ -197,20 +296,48 @@ docker logs pets-redis
 
 ### Workers no procesan
 ```bash
-docker-compose restart pets-consumer-1
+docker-compose restart consumer-1 consumer-2 consumer-3
 docker logs --tail 50 pets-consumer-1
+```
+
+### Token expirado (después de 1 hora)
+```powershell
+# Obtener nuevo token
+$response = Invoke-RestMethod -Uri "http://localhost:8000/api/token/" -Method Post -ContentType "application/json" -Body '{"username": "admin", "password": "admin123"}'
+$token = $response.access
 ```
 
 ---
 
 ## 🎯 Próximos Pasos
 
-1. Crea varias mascotas diferentes (perros, gatos, pájaros)
-2. Observa cómo los 3 workers procesan las tareas en paralelo
-3. Revisa los archivos JSON generados
-4. Experimenta con los filtros de la API
-5. Lee el README.md para funcionalidades avanzadas
+1. ✅ Crea varias mascotas diferentes (perros, gatos, pájaros, conejos, peces)
+2. ✅ Observa cómo los 3 workers procesan las tareas en paralelo
+3. ✅ Revisa los archivos JSON generados
+4. ✅ Experimenta con mascotas sin vacunar (verás alertas URGENT)
+5. ✅ Usa los filtros de la API (`?species=Cat`, `?vaccinated=false`)
+6. ✅ Lee el README.md para funcionalidades avanzadas
 
 ---
 
-**¡Disfruta del proyecto! 🐾**
+## 📚 Más Información
+
+- **README.md** - Documentación completa
+- **ARQUITECTURA.md** - Diagramas y explicación técnica
+- **COMANDOS.txt** - Todos los comandos disponibles
+- **RESUMEN_EJECUTIVO.md** - Overview del proyecto
+
+---
+
+## 🏆 Características del Sistema
+
+✅ **Procesamiento distribuido** - 3 workers en paralelo  
+✅ **Detección inteligente** - Alertas para mascotas sin vacunar  
+✅ **Enriquecimiento de datos** - Wikipedia + datos curiosos  
+✅ **Recomendaciones personalizadas** - Por especie, edad y vacunación  
+✅ **Escalable** - Fácil agregar más workers  
+✅ **Monitoreable** - Logs detallados y estadísticas  
+
+---
+
+**🎉 ¡Disfruta del proyecto! Tu sistema distribuido con Redis está funcionando perfectamente.**

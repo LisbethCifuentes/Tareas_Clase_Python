@@ -1,6 +1,6 @@
 # 🐾 Pet App - Django + MongoDB + Redis + Workers
 
-Sistema distribuido para gestionar mascotas con API REST, colas de Redis y procesamiento asíncrono.
+Sistema distribuido para gestionar mascotas con API REST, colas de Redis y procesamiento asíncrono con múltiples workers.
 
 ## 🎯 Características Principales
 
@@ -10,7 +10,7 @@ Sistema distribuido para gestionar mascotas con API REST, colas de Redis y proce
 ✅ **Redis** como sistema de colas (message broker)  
 ✅ **3 Consumidores** (workers) para procesamiento distribuido  
 ✅ **Docker Compose** orquestando todos los servicios  
-✅ **Procesamiento asíncrono**: enriquecimiento de datos de mascotas  
+✅ **Procesamiento asíncrono**: enriquecimiento inteligente de datos de mascotas  
 
 ---
 
@@ -33,7 +33,7 @@ Sistema distribuido para gestionar mascotas con API REST, colas de Redis y proce
    └─────┬────┘
          │
     ┌────┴────┬─────────┬─────────┐
-    ▼         ▼         ▼         ▼
+    ▼         ▼         ▼         
 ┌──────┐  ┌──────┐  ┌──────┐
 │Worker│  │Worker│  │Worker│  Consumen tareas
 │  1   │  │  2   │  │  3   │  y procesan datos
@@ -50,14 +50,14 @@ Sistema distribuido para gestionar mascotas con API REST, colas de Redis y proce
 
 ## 🛠️ Tecnologías
 
-| Componente | Tecnología |
-|-----------|------------|
-| **Backend** | Django 4.2.7 + DRF |
-| **Base de Datos** | MongoDB 7.0 |
-| **Message Queue** | Redis 7 (Alpine) |
-| **ORM** | MongoEngine 0.27.0 |
-| **Autenticación** | JWT (djangorestframework-simplejwt) |
-| **Contenedores** | Docker + Docker Compose |
+| Componente | Tecnología | Versión |
+|-----------|------------|---------|
+| **Backend** | Django + DRF | 4.2.7 |
+| **Base de Datos** | MongoDB | 7.0 |
+| **Message Queue** | Redis | 7 Alpine |
+| **ORM** | MongoEngine | 0.27.0 |
+| **Autenticación** | JWT | Simple JWT 5.3.0 |
+| **Contenedores** | Docker Compose | - |
 
 ---
 
@@ -69,33 +69,41 @@ Sistema distribuido para gestionar mascotas con API REST, colas de Redis y proce
 
 ---
 
-## 🚀 Instalación Rápida
+## 🚀 Instalación y Ejecución
 
-### 1. Clonar/Descargar el proyecto
-
-```bash
-cd pets-redis-project
-```
-
-### 2. Levantar todos los servicios
+### 1. Levantar todos los servicios
 
 ```bash
 docker-compose up --build
 ```
 
-Esto iniciará:
+Esto iniciará automáticamente:
 - ✅ Redis (puerto 6379)
 - ✅ MongoDB (puerto 27017)  
 - ✅ Django API (puerto 8000)
-- ✅ Worker 1, 2 y 3 (consumidores)
+- ✅ 3 Workers/Consumidores
 
-### 3. Migrar la base de datos (nueva terminal)
+**Espera a ver estos mensajes:**
+```
+pets-redis        | Ready to accept connections
+pets-mongodb      | Waiting for connections
+pets-django-api   | Starting development server at http://0.0.0.0:8000/
+pets-consumer-1   | [Consumer-1] 👂 Waiting for tasks...
+pets-consumer-2   | [Consumer-2] 👂 Waiting for tasks...
+pets-consumer-3   | [Consumer-3] 👂 Waiting for tasks...
+```
+
+---
+
+### 2. Migrar la base de datos (nueva terminal)
 
 ```bash
 docker exec -it pets-django-api python manage.py migrate
 ```
 
-### 4. Crear superusuario
+---
+
+### 3. Crear superusuario
 
 ```bash
 docker exec -it pets-django-api python manage.py createsuperuser
@@ -152,7 +160,7 @@ curl -X POST http://localhost:8000/api/token/ \
 **Respuesta:**
 ```json
 {
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
 }
 ```
@@ -161,7 +169,7 @@ Guarda el `access` token.
 
 ---
 
-### Paso 2: Crear una Mascota (Envía tarea a Redis)
+### Paso 2: Crear una Mascota (¡Aquí pasa la magia!)
 
 ```bash
 curl -X POST http://localhost:8000/api/pets/ \
@@ -212,11 +220,11 @@ curl http://localhost:8000/api/redis/stats/ \
 ```json
 {
   "queue_name": "pets:tasks",
-  "pending_tasks": 2,
+  "pending_tasks": 0,
   "redis_host": "redis",
   "redis_port": 6379,
   "connected_clients": 4,
-  "total_commands_processed": 156
+  "total_commands_processed": 3365
 }
 ```
 
@@ -228,31 +236,35 @@ Cuando creas una mascota, los workers procesan la tarea y:
 
 1. **Buscan información en Wikipedia** sobre la especie
 2. **Generan datos curiosos** (esperanza de vida, dieta, curiosidades)
-3. **Crean recomendaciones de salud** personalizadas
-4. **Guardan todo en un archivo JSON** enriquecido
+3. **Crean recomendaciones de salud personalizadas** basadas en:
+   - Edad de la mascota
+   - Estado de vacunación
+   - Especie
+4. **Detectan alertas** (ej: mascotas sin vacunar)
+5. **Guardan todo en un archivo JSON** enriquecido
 
 ### Ejemplo de Archivo Generado
 
-Ubicación: `/processed_data/67698abc_Luna_20250124_143022.json`
+Ubicación: `/processed_data/6981fcf3dd7c1b67498baf89_Mishi_20260203_134940.json`
 
 ```json
 {
   "metadata": {
-    "processed_by": "Consumer-2",
-    "processed_at": "2025-01-24T14:30:22.456789",
+    "processed_by": "Consumer-3",
+    "processed_at": "2026-02-03T13:49:40.520041",
     "processing_duration_seconds": 2
   },
   "original_data": {
-    "pet_id": "67698abc123def456789",
-    "name": "Luna",
+    "pet_id": "6981fcf3dd7c1b67498baf89",
+    "name": "Mishi",
     "species": "Cat",
-    "age": 3,
-    "owner": "María García",
-    "vaccinated": true
+    "age": 2,
+    "owner": "Ana Garcia",
+    "vaccinated": false
   },
   "enriched_info": {
     "wikipedia": {
-      "wikipedia_extract": "The cat is a domestic species of small carnivorous mammal...",
+      "wikipedia_extract": "The cat is a domestic species...",
       "wikipedia_url": "https://en.wikipedia.org/wiki/Cat",
       "thumbnail": "https://upload.wikimedia.org/..."
     },
@@ -263,13 +275,14 @@ Ubicación: `/processed_data/67698abc_Luna_20250124_143022.json`
       "fun_fact": "Cats spend 70% of their lives sleeping!"
     },
     "health_tips": [
-      "✅ Adult Cat in prime age. Maintain regular check-ups.",
+      "⚠️ URGENT: This Cat needs vaccination! Please consult a veterinarian.",
+      "🐱 Adult Cat in prime age. Maintain regular check-ups.",
       "🐱 Cats need scratching posts and regular grooming."
     ]
   },
   "statistics": {
-    "total_tips": 2,
-    "vaccination_status": "Up to date",
+    "total_tips": 3,
+    "vaccination_status": "Needs vaccination",
     "age_category": "Adult"
   }
 }
@@ -325,10 +338,8 @@ docker exec -it pets-redis redis-cli ping
 
 ### 2. ✅ Ver cola de Redis
 ```bash
-docker exec -it pets-redis redis-cli
-> LLEN pets:tasks
-> LRANGE pets:tasks 0 -1
-> exit
+docker exec -it pets-redis redis-cli LLEN pets:tasks
+# Debe responder: (integer) 0 si no hay tareas pendientes
 ```
 
 ### 3. ✅ Verificar workers procesando
@@ -338,15 +349,21 @@ docker logs pets-consumer-1 --tail 50
 
 Deberías ver logs como:
 ```
-[2025-01-24 14:30:20] [Consumer-1] [INFO] 👂 Waiting for tasks...
-[2025-01-24 14:30:22] [Consumer-1] [INFO] 📨 Received new task from queue
-[2025-01-24 14:30:22] [Consumer-1] [INFO] Processing pet: Luna (Cat) - ID: 67698abc
-[2025-01-24 14:30:24] [Consumer-1] [SUCCESS] ✅ Enriched data saved to: 67698abc_Luna_20250124_143022.json
+[2026-02-03 13:49:40] [Consumer-1] [INFO] 👂 Waiting for tasks...
+[2026-02-03 13:49:41] [Consumer-1] [INFO] 📨 Received new task from queue
+[2026-02-03 13:49:41] [Consumer-1] [INFO] Processing pet: Luna (Cat) - ID: 67698abc
+[2026-02-03 13:49:43] [Consumer-1] [SUCCESS] ✅ Enriched data saved to: 67698abc_Luna_20260203_134943.json
+[2026-02-03 13:49:43] [Consumer-1] [SUCCESS] ⏱️  Task processed in 2.15s
 ```
 
 ### 4. ✅ Ver archivos generados
 ```bash
 docker exec -it pets-consumer-1 ls -lh /app/processed_data
+```
+
+### 5. ✅ Ver contenido de un archivo
+```bash
+docker exec -it pets-consumer-1 cat /app/processed_data/NOMBRE_ARCHIVO.json
 ```
 
 ---
@@ -372,8 +389,6 @@ curl "http://localhost:8000/api/pets/?species=Cat&vaccinated=false" \
 ---
 
 ## 📊 Escalabilidad
-
-Este proyecto está diseñado para escalar fácilmente:
 
 ### Agregar más workers
 
@@ -486,10 +501,10 @@ pets-redis-project/
 ### 2. **FIFO Queue (First In, First Out)**
 ```python
 # Productor añade al final
-redis_client.rpush('queue', task)
+redis_client.rpush('pets:tasks', task)
 
 # Consumidor saca del principio
-redis_client.blpop('queue', timeout=1)
+redis_client.blpop('pets:tasks', timeout=1)
 ```
 
 ### 3. **Procesamiento Asíncrono**
@@ -512,12 +527,13 @@ redis_client.blpop('queue', timeout=1)
 - [ ] Métricas con Prometheus/Grafana
 - [ ] Sistema de prioridades en las tareas
 - [ ] WebSocket para actualizaciones en vivo
+- [ ] Panel de administración para monitorear workers
 
 ---
 
 ## 👨‍💻 Autor
 
-Proyecto desarrollado como ejemplo de arquitectura con colas de mensajes.
+Proyecto desarrollado como ejemplo de arquitectura distribuida con colas de mensajes.
 
 ---
 
@@ -551,6 +567,9 @@ docker exec -it pets-django-api python manage.py createsuperuser
 # Ver logs
 docker logs -f pets-consumer-1
 
+# Ver archivos generados
+docker exec -it pets-consumer-1 ls -lh /app/processed_data
+
 # Detener todo
 docker-compose down
 
@@ -560,4 +579,3 @@ docker-compose down -v
 
 ---
 
-**🎉 ¡Listo! Ahora tienes un sistema distribuido con colas de Redis funcionando.**
