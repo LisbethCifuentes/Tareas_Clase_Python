@@ -1,0 +1,118 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: pets-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - pets-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mongo:
+    image: mongo:7.0
+    container_name: pets-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: pets_database
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - pets-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  django-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pets-django-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_DB=pets_database
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pets-network
+    volumes:
+      - .:/app
+      - processed_data:/app/processed_data
+
+  consumer-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    container_name: pets-consumer-1
+    restart: unless-stopped
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CONSUMER_ID=1
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - pets-network
+    volumes:
+      - processed_data:/app/processed_data
+
+  consumer-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    container_name: pets-consumer-2
+    restart: unless-stopped
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CONSUMER_ID=2
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - pets-network
+    volumes:
+      - processed_data:/app/processed_data
+
+  consumer-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    container_name: pets-consumer-3
+    restart: unless-stopped
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CONSUMER_ID=3
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - pets-network
+    volumes:
+      - processed_data:/app/processed_data
+
+networks:
+  pets-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  processed_data:

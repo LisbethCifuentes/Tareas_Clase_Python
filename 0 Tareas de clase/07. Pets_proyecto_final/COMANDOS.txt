@@ -1,0 +1,313 @@
+# ============================================================
+# COMANDOS ÚTILES - PETS + REDIS + WORKERS
+# ============================================================
+
+# ============================================================
+# 1. INICIAR EL PROYECTO
+# ============================================================
+
+# Construir e iniciar todos los servicios
+docker-compose up --build
+
+# Iniciar en segundo plano (recomendado)
+docker-compose up -d
+
+# Ver logs en tiempo real
+docker-compose logs -f
+
+# Ver logs de un servicio específico
+docker logs -f pets-django-api
+docker logs -f pets-redis
+docker logs -f pets-consumer-1
+docker logs -f pets-consumer-2
+docker logs -f pets-consumer-3
+docker logs -f pets-mongodb
+
+# ============================================================
+# 2. CONFIGURACIÓN INICIAL (Solo primera vez)
+# ============================================================
+
+# Migrar base de datos
+docker exec -it pets-django-api python manage.py migrate
+
+# Crear superusuario
+docker exec -it pets-django-api python manage.py createsuperuser
+# Username: admin
+# Password: admin123
+
+# ============================================================
+# 3. GESTIÓN DE CONTENEDORES
+# ============================================================
+
+# Ver estado de servicios
+docker-compose ps
+
+# Detener todos los servicios
+docker-compose down
+
+# Detener y eliminar volúmenes (limpieza completa)
+docker-compose down -v
+
+# Reiniciar un servicio específico
+docker-compose restart pets-consumer-1
+docker-compose restart redis
+
+# Escalar workers (agregar más consumidores)
+docker-compose up -d --scale consumer=5
+
+# ============================================================
+# 4. VERIFICAR REDIS
+# ============================================================
+
+# Conectar a Redis CLI
+docker exec -it pets-redis redis-cli
+
+# Dentro de redis-cli:
+# > PING                        # Verificar conexión
+# > LLEN pets:tasks             # Ver cantidad de tareas pendientes
+# > LRANGE pets:tasks 0 -1      # Ver todas las tareas en cola
+# > KEYS *                      # Ver todas las keys
+# > FLUSHALL                    # Limpiar toda la base de datos (¡cuidado!)
+# > exit
+
+# Ver tareas en cola (desde fuera)
+docker exec -it pets-redis redis-cli LLEN pets:tasks
+
+# ============================================================
+# 5. API - OBTENER TOKEN JWT
+# ============================================================
+
+# Linux/Mac
+curl -X POST http://localhost:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+
+# Windows (PowerShell)
+curl.exe -X POST http://localhost:8000/api/token/ -H "Content-Type: application/json" -d '{\"username\": \"admin\", \"password\": \"admin123\"}'
+
+# Respuesta incluirá:
+# {
+#   "access": "TOKEN_AQUI",
+#   "refresh": "REFRESH_TOKEN_AQUI"
+# }
+
+# ============================================================
+# 6. API - CREAR MASCOTA (Envía tarea a Redis)
+# ============================================================
+
+# Reemplaza TU_TOKEN con el access token obtenido
+
+# Linux/Mac
+curl -X POST http://localhost:8000/api/pets/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer TU_TOKEN" \
+  -d '{
+    "name": "Max",
+    "species": "Dog",
+    "age": 5,
+    "owner": "Juan Pérez",
+    "vaccinated": true
+  }'
+
+# Windows (PowerShell) - Ejemplo completo
+curl.exe -X POST http://localhost:8000/api/pets/ -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." -d '{\"name\": \"Luna\", \"species\": \"Cat\", \"age\": 3, \"owner\": \"María\", \"vaccinated\": true}'
+
+# ============================================================
+# 7. API - LISTAR MASCOTAS
+# ============================================================
+
+curl http://localhost:8000/api/pets/ \
+  -H "Authorization: Bearer TU_TOKEN"
+
+# Con filtros
+curl "http://localhost:8000/api/pets/?species=Dog" \
+  -H "Authorization: Bearer TU_TOKEN"
+
+curl "http://localhost:8000/api/pets/?vaccinated=true" \
+  -H "Authorization: Bearer TU_TOKEN"
+
+# ============================================================
+# 8. API - VER ESTADÍSTICAS DE REDIS
+# ============================================================
+
+curl http://localhost:8000/api/redis/stats/ \
+  -H "Authorization: Bearer TU_TOKEN"
+
+# ============================================================
+# 9. ACTUALIZAR MASCOTA
+# ============================================================
+
+curl -X PUT http://localhost:8000/api/pets/ID_MASCOTA/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer TU_TOKEN" \
+  -d '{"age": 6, "vaccinated": true}'
+
+# ============================================================
+# 10. ELIMINAR MASCOTA
+# ============================================================
+
+curl -X DELETE http://localhost:8000/api/pets/ID_MASCOTA/ \
+  -H "Authorization: Bearer TU_TOKEN"
+
+# ============================================================
+# 11. VER ARCHIVOS PROCESADOS POR WORKERS
+# ============================================================
+
+# Listar archivos JSON generados
+docker exec -it pets-consumer-1 ls -lh /app/processed_data
+
+# Ver contenido de un archivo específico
+docker exec -it pets-consumer-1 cat /app/processed_data/NOMBRE_ARCHIVO.json
+
+# Copiar archivos procesados a tu máquina local
+docker cp pets-consumer-1:/app/processed_data ./datos_procesados
+
+# ============================================================
+# 12. DEBUGGING Y MONITOREO
+# ============================================================
+
+# Ver últimas 100 líneas de logs de un worker
+docker logs --tail 100 pets-consumer-1
+
+# Seguir logs en tiempo real de múltiples workers
+docker logs -f pets-consumer-1 & docker logs -f pets-consumer-2 & docker logs -f pets-consumer-3
+
+# Ver uso de recursos
+docker stats
+
+# Inspeccionar un contenedor
+docker inspect pets-consumer-1
+
+# Entrar al contenedor (shell interactivo)
+docker exec -it pets-django-api /bin/bash
+docker exec -it pets-consumer-1 /bin/sh
+
+# ============================================================
+# 13. VERIFICAR QUE TODO FUNCIONA
+# ============================================================
+
+# 1. Verificar que Redis responde
+docker exec -it pets-redis redis-cli ping
+# Debe responder: PONG
+
+# 2. Ver workers activos
+docker ps | grep consumer
+
+# 3. Crear una mascota y verificar el procesamiento:
+#    a) Crear mascota (POST /api/pets/)
+#    b) Ver logs del worker que la procesó
+#    c) Verificar archivo JSON generado
+
+# ============================================================
+# 14. LIMPIEZA Y MANTENIMIENTO
+# ============================================================
+
+# Limpiar imágenes no usadas
+docker image prune
+
+# Limpiar todo (contenedores, redes, volúmenes)
+docker system prune -a --volumes
+
+# Reconstruir servicios desde cero
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+
+# ============================================================
+# 15. TESTING RÁPIDO
+# ============================================================
+
+# Test completo automatizado
+# 1. Obtener token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}' \
+  | grep -o '"access":"[^"]*' | cut -d'"' -f4)
+
+echo "Token: $TOKEN"
+
+# 2. Crear mascota
+curl -X POST http://localhost:8000/api/pets/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "name": "TestPet",
+    "species": "Dog",
+    "age": 4,
+    "owner": "Test Owner",
+    "vaccinated": true
+  }'
+
+# 3. Ver estadísticas de Redis
+curl http://localhost:8000/api/redis/stats/ \
+  -H "Authorization: Bearer $TOKEN"
+
+# 4. Ver logs de workers
+docker logs --tail 20 pets-consumer-1
+
+# ============================================================
+# 16. SOLUCIÓN DE PROBLEMAS COMUNES
+# ============================================================
+
+# Problema: Puerto ocupado
+# Windows:
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+
+# Linux/Mac:
+lsof -ti:8000 | xargs kill -9
+
+# Problema: Redis no conecta
+docker-compose restart redis
+docker logs pets-redis
+
+# Problema: Workers no procesan
+docker-compose restart pets-consumer-1
+docker logs --tail 50 pets-consumer-1
+
+# Problema: MongoDB no arranca
+docker-compose restart mongo
+docker logs pets-mongodb
+
+# ============================================================
+# 17. ACCEDER A BASES DE DATOS
+# ============================================================
+
+# MongoDB Shell
+docker exec -it pets-mongodb mongosh pets_database
+
+# Dentro de mongosh:
+# > show collections
+# > db.pet.find()
+# > db.pet.countDocuments()
+# > db.pet.find().pretty()
+# > exit
+
+# SQLite (para usuarios de Django)
+docker exec -it pets-django-api python manage.py dbshell
+
+# ============================================================
+# 18. DESARROLLO Y DEBUGGING
+# ============================================================
+
+# Recargar código sin reconstruir (si usas volúmenes)
+# Solo edita el archivo y Django recargará automáticamente
+
+# Forzar reconstrucción de un servicio
+docker-compose up -d --build django-api
+
+# Ver variables de entorno de un contenedor
+docker exec -it pets-consumer-1 env
+
+# Ejecutar comando Python en Django
+docker exec -it pets-django-api python manage.py shell
+
+# ============================================================
+# NOTAS IMPORTANTES
+# ============================================================
+
+# - Los workers procesan tareas en FIFO (First In, First Out)
+# - Cada mascota creada genera automáticamente un archivo JSON
+# - Los archivos se guardan en: /app/processed_data/
+# - Los workers se pueden escalar horizontalmente
+# - Redis actúa como cola de mensajes entre Django y Workers
