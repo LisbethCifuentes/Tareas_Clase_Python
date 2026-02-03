@@ -20,3 +20,8 @@ https://github.com/LisbethCifuentes/Curso_Programacion_Python/tree/master/0%20Ta
 App.py - Tema: Mascotas (Pets)
 Fecha: 2025-12-23
 https://github.com/LisbethCifuentes/Curso_Programacion_Python/tree/master/0%20Tareas%20de%20clase/05.%20App_Pet%20-%20django
+
+#6 Homework Programación Concurrente y Paralela - Proyecto Práctico I (Omitir) 
+App.py - Tema: Mascotas (Pets)
+Fecha: 2026-02-02
+https://github.com/LisbethCifuentes/Tareas_Clase_Python/tree/main/0%20Tareas%20de%20clase/06.%20Pets_redis_project
